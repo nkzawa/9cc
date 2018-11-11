@@ -34,11 +34,9 @@ Map *new_map();
 void map_put(Map*, char*, void*);
 void *map_get(Map*, char*);
 
-void tokenize(char*);
-void program();
+Vector *tokenize(char*);
+Vector *program();
 void gen(Node*);
 void runtest();
-
-extern Node *code[100];
 
 #endif // _9CC_H_

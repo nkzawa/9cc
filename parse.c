@@ -17,14 +17,14 @@ typedef struct {
     char *input;
 } Token;
 
-Node *code[100];
-
-static Token tokens[100];
+static Vector *tokens;
 static int pos;
 
 static Node *expr();
 
-void tokenize(char *p) {
+Vector *tokenize(char *p) {
+    Vector *tokens = new_vector();
+
     int i = 0;
     while (*p) {
         if (isspace(*p)) {
@@ -32,41 +32,44 @@ void tokenize(char *p) {
             continue;
         }
 
+        Token *t = malloc(sizeof(Token));
+        vec_push(tokens, t);
+
         if (p[0] == '=' && p[1] == '=') {
-            tokens[i].ty = TK_EQ;
-            tokens[i].input = p;
+            t->ty = TK_EQ;
+            t->input = p;
             i++;
             p += 2;
             continue;
         }
 
         if (p[0] == '!' && p[1] == '=') {
-            tokens[i].ty = TK_NE;
-            tokens[i].input = p;
+            t->ty = TK_NE;
+            t->input = p;
             i++;
             p += 2;
             continue;
         }
 
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == '=' || *p == ';') {
-            tokens[i].ty = *p;
-            tokens[i].input = p;
+            t->ty = *p;
+            t->input = p;
             i++;
             p++;
             continue;
         }
 
         if (isdigit(*p)) {
-            tokens[i].ty = TK_NUM;
-            tokens[i].input = p;
-            tokens[i].val = strtol(p, &p, 10);
+            t->ty = TK_NUM;
+            t->input = p;
+            t->val = strtol(p, &p, 10);
             i++;
             continue;
         }
 
         if ('a' <= *p && *p <= 'z') {
-            tokens[i].ty = TK_IDENT;
-            tokens[i].input = p;
+            t->ty = TK_IDENT;
+            t->input = p;
             i++;
             p++;
             continue;
@@ -76,8 +79,12 @@ void tokenize(char *p) {
         exit(1);
     }
 
-    tokens[i].ty = TK_EOF;
-    tokens[i].input = p;
+    Token *t = malloc(sizeof(Token));
+    vec_push(tokens, t);
+    t->ty = TK_EOF;
+    t->input = p;
+
+    return tokens;
 }
 
 static Node *new_node(int ty, Node *lhs, Node *rhs) {
@@ -103,33 +110,38 @@ static Node *new_node_ident(char name) {
 }
 
 static Node *term() {
-    if (tokens[pos].ty == TK_NUM) {
-        return new_node_num(tokens[pos++].val);
+    Token *t = tokens->data[pos];
+    if (t->ty == TK_NUM) {
+        pos++;
+        return new_node_num(t->val);
     }
-    if (tokens[pos].ty == TK_IDENT) {
-        return new_node_ident(*tokens[pos++].input);
+    if (t->ty == TK_IDENT) {
+        pos++;
+        return new_node_ident(*t->input);
     }
-    if (tokens[pos].ty == '(') {
+    if (t->ty == '(') {
         pos++;
         Node *node = expr();
-        if (tokens[pos].ty != ')') {
-            fprintf(stderr, "Unexpected token: %s\n", tokens[pos].input);
+        t = tokens->data[pos];
+        if (t->ty != ')') {
+            fprintf(stderr, "Unexpected token: %s\n", t->input);
             exit(1);
         }
         pos++;
         return node;
     }
-    fprintf(stderr, "Unexpected token: %s\n", tokens[pos].input);
+    fprintf(stderr, "Unexpected token: %s\n", t->input);
     exit(1);
 }
 
 static Node *mul() {
     Node *lhs = term();
-    if (tokens[pos].ty == '*') {
+    Token *t = tokens->data[pos];
+    if (t->ty == '*') {
         pos++;
         return new_node('*', lhs, mul());
     }
-    if (tokens[pos].ty == '/') {
+    if (t->ty == '/') {
         pos++;
         return new_node('/', lhs, mul());
     }
@@ -138,11 +150,12 @@ static Node *mul() {
 
 static Node *add() {
     Node *lhs = mul();
-    if (tokens[pos].ty == '+') {
+    Token *t = tokens->data[pos];
+    if (t->ty == '+') {
         pos++;
         return new_node('+', lhs, add());
     }
-    if (tokens[pos].ty == '-') {
+    if (t->ty == '-') {
         pos++;
         return new_node('-', lhs, add());
     }
@@ -151,11 +164,12 @@ static Node *add() {
 
 static Node *expr() {
     Node *lhs = add();
-    if (tokens[pos].ty == TK_EQ) {
+    Token *t = tokens->data[pos];
+    if (t->ty == TK_EQ) {
         pos++;
         return new_node(ND_EQ, lhs, expr());
     }
-    if (tokens[pos].ty == TK_NE) {
+    if (t->ty == TK_NE) {
         pos++;
         return new_node(ND_NE, lhs, expr());
     }
@@ -164,19 +178,24 @@ static Node *expr() {
 
 static Node *assign() {
     Node *lhs = expr();
-    if (tokens[pos].ty == '=') {
+    Token *t = tokens->data[pos];
+    if (t->ty == '=') {
         pos++;
         return new_node('=', lhs, assign());
     }
-    if (tokens[pos].ty == ';') {
+    if (t->ty == ';') {
         pos++;
     }
     return lhs;
 }
 
-void program() {
-    int i = 0;
-    while (tokens[pos].ty != TK_EOF) {
-        code[i++] = assign();
+Vector *program(Vector *tokens_) {
+    tokens = tokens_;
+    pos = 0;
+
+    Vector *code = new_vector();
+    while (((Token *)tokens->data[pos])->ty != TK_EOF) {
+        vec_push(code, assign());
     }
+    return code;
 }

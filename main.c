@@ -13,8 +13,8 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    tokenize(argv[1]);
-    program();
+    Vector *tokens = tokenize(argv[1]);
+    Vector *code = program(tokens);
 
     printf(".intel_syntax noprefix\n");
     printf(".global _main\n");
@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
     // 208 bytes = 26 variables * 8
     printf("  sub rsp, 208\n");
 
-    for (int i = 0; code[i]; i++) {
-        gen(code[i]);
+    for (int i = 0; i < code->len; i++) {
+        gen(code->data[i]);
 
         // pop remaining value from stack
         printf("  pop rax\n");
