@@ -8,6 +8,17 @@ enum {
     ND_NE,
 };
 
+typedef struct {
+    void **data;
+    int capacity;
+    int len;
+} Vector;
+
+typedef struct {
+    Vector *keys;
+    Vector *vals;
+} Map;
+
 typedef struct Node {
     int ty;
     struct Node *lhs;
@@ -16,9 +27,17 @@ typedef struct Node {
     char name;
 } Node;
 
+Vector *new_vector();
+void vec_push(Vector*, void*);
+
+Map *new_map();
+void map_put(Map*, char*, void*);
+void *map_get(Map*, char*);
+
 void tokenize(char*);
 void program();
 void gen(Node*);
+void runtest();
 
 extern Node *code[100];
 
