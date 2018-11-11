@@ -6,6 +6,8 @@
 enum {
     TK_NUM = 256,
     TK_IDENT,
+    TK_EQ,
+    TK_NE,
     TK_EOF,
 };
 
@@ -27,6 +29,22 @@ void tokenize(char *p) {
     while (*p) {
         if (isspace(*p)) {
             p++;
+            continue;
+        }
+
+        if (p[0] == '=' && p[1] == '=') {
+            tokens[i].ty = TK_EQ;
+            tokens[i].input = p;
+            i++;
+            p += 2;
+            continue;
+        }
+
+        if (p[0] == '!' && p[1] == '=') {
+            tokens[i].ty = TK_NE;
+            tokens[i].input = p;
+            i++;
+            p += 2;
             continue;
         }
 
@@ -118,15 +136,28 @@ static Node *mul() {
     return lhs;
 }
 
-static Node *expr() {
+static Node *add() {
     Node *lhs = mul();
     if (tokens[pos].ty == '+') {
         pos++;
-        return new_node('+', lhs, expr());
+        return new_node('+', lhs, add());
     }
     if (tokens[pos].ty == '-') {
         pos++;
-        return new_node('-', lhs, expr());
+        return new_node('-', lhs, add());
+    }
+    return lhs;
+}
+
+static Node *expr() {
+    Node *lhs = add();
+    if (tokens[pos].ty == TK_EQ) {
+        pos++;
+        return new_node(ND_EQ, lhs, expr());
+    }
+    if (tokens[pos].ty == TK_NE) {
+        pos++;
+        return new_node(ND_NE, lhs, expr());
     }
     return lhs;
 }

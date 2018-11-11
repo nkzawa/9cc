@@ -4,6 +4,8 @@
 enum {
     ND_NUM = 256,
     ND_IDENT,
+    ND_EQ,
+    ND_NE,
 };
 
 typedef struct Node {
